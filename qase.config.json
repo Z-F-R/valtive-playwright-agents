@@ -1,0 +1,10 @@
+{
+    "mode": "off",
+    "fallback": "report",
+    "testops": {
+        "project": "DEMO",
+        "run": {
+            "complete": true
+        }
+    }
+}
