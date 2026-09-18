@@ -13,11 +13,9 @@ export type GuestDetails = {
 };
 
 export class CalendlyPage {
-  readonly page: Page;
   readonly frame: FrameLocator;
 
   constructor(page: Page) {
-    this.page = page;
     this.frame = page.frameLocator(
       'iframe[title="Select a Date & Time - Calendly"]',
     );
@@ -332,18 +330,5 @@ export class CalendlyPage {
     await expect(invitationMessage).toBeVisible();
 
     return 'success';
-  }
-
-  async expectSuccessfulBooking() {
-    await expect(
-      this.frame.getByText('You are scheduled', { exact: false }),
-    ).toBeVisible();
-
-    await expect(
-      this.frame.getByText(
-        'A calendar invitation has been sent to your email address.',
-        { exact: false },
-      ),
-    ).toBeVisible();
   }
 }

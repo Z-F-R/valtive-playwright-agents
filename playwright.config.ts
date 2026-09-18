@@ -13,7 +13,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['playwright-qase-reporter'],
   ],
-  workers: 2,
+  workers: 1,
   use: {
     baseURL: 'https://valtive.io',
     channel: 'chrome',

@@ -1,83 +1,99 @@
 # Valtive contact form and Calendly booking flow
 
-## Application Overview
+## Scope
 
-This plan covers the Valtive contact journey and the embedded Calendly scheduling flow. It focuses on the form, the inline booking widget, and the confirmation states required for a successful booking. It does not test unrelated pages or functionality.
+This test plan covers the Valtive contact page and the embedded Calendly scheduling widget used to book a meeting.
 
-## Test Scenarios
+The implementation focuses on the live booking flow required by the assignment: discovering 40 unique available Calendly slots, generating unique attendee data, attempting the bookings, and verifying Calendly's booking confirmation.
 
-### 1. contact-and-booking-flow
+## Automated scenario
 
-**Seed:** `seed.spec.ts`
+### Book 40 unique live Calendly slots
 
-#### 1.1. Contact page loads with required form and embedded scheduler
+**Implementation:** `tests/valtive-contact-booking.spec.ts`
 
-**File:** `specs/contact-and-booking-flow/contact-page-loads.spec.ts`
+**Page Objects:**
+- `tests/page-objects/valtive-contact.page.ts`
+- `tests/page-objects/calendly.page.ts`
 
-**Steps:**
-  1. Open https://valtive.io/contact-valtive/ in a fresh browser context.
-    - expect: The page loads successfully.
-    - expect: The Valtive contact page heading is visible.
-    - expect: The contact form is present and the Calendly iframe is visible.
-  2. Identify the main UI regions and form controls.
-    - expect: The Valtive header and footer are present.
-    - expect: The form includes the required fields for name, email, and message.
-    - expect: The iframe loads a Calendly date/time picker.
+**Fixture:**
+- `tests/fixtures/booking.fixture.ts`
 
-#### 1.2. Successful submission of the Valtive contact form
+**Test data generator:**
+- `tests/data/booking-candidates.ts`
 
-**File:** `specs/contact-and-booking-flow/contact-form-submission.spec.ts`
+### Preconditions
 
-**Steps:**
-  1. Attempt to submit the form with empty fields.
-    - expect: Validation or required-field behavior prevents submission.
-    - expect: The user remains on the form and no booking flow starts until valid values are entered.
-  2. Fill the form with valid data and submit it.
-    - expect: The form accepts valid input.
-    - expect: The user proceeds to the Calendly booking flow or reaches the expected next step without a hard error.
+- The Valtive contact page is available.
+- The embedded Calendly scheduler is available.
+- At least 40 unique bookable date/time slots are available.
+- A valid base email address is available for generated attendee addresses.
 
-#### 1.3. Calendly booking flow exposes a valid date and time selection path
+### Steps and expected results
 
-**File:** `specs/contact-and-booking-flow/calendly-embed-loads.spec.ts`
+1. Open `https://valtive.io/contact-valtive/`.
+   - The contact page loads successfully.
+   - The page heading contains `Contact Valtive`.
+   - The Calendly iframe is visible.
 
-**Steps:**
-  1. Switch into the Calendly iframe and verify the embedded scheduling widget loads.
-    - expect: The inline Calendly widget is visible.
-    - expect: The header identifies the meeting type, such as a 30 Minute Meeting.
-    - expect: The date picker is active and the month navigation is visible.
-  2. Select a bookable day and inspect the available time slots.
-    - expect: The selected date is marked as having times available.
-    - expect: A list of time slots appears for the chosen date.
-    - expect: The user can proceed to the next booking step.
+2. Load the Calendly scheduler.
+   - The Calendly calendar is visible.
+   - At least one date with available times is present.
 
-#### 1.4. Book 40 unique available time slots using generated test data
+3. Collect available booking slots.
+   - Available dates are discovered from the live Calendly calendar.
+   - Time slots are collected from the selected dates.
+   - Date/time combinations are deduplicated.
+   - At least 40 unique slots are required; otherwise the test fails.
 
-**File:** `specs/contact-and-booking-flow/book-40-unique-slots.spec.ts`
+4. Generate booking candidates.
+   - Exactly 40 candidates are created.
+   - Every candidate has a unique email address.
+   - Every candidate uses a unique date/time combination.
 
-**Steps:**
-  1. Generate a data set of 40 unique booking candidates using different date/time combinations and unique attendee values.
-    - expect: Each candidate uses a unique attendee name and email.
-    - expect: Each candidate selects a different slot from the available calendars so that no slot is duplicated within the run.
-    - expect: The generator avoids reusing the exact same date and time combination.
-  2. For each candidate, complete the contact form with the generated data and reach the Calendly widget.
-    - expect: The form submission succeeds with unique values.
-    - expect: The user lands inside the embedded Calendly date/time picker for each run.
-  3. Select a unique available slot, continue through booking details, and finalize the booking.
-    - expect: The selected slot is accepted by Calendly.
-    - expect: The booking flow reaches a confirmation state.
-    - expect: The confirmation includes the required text, 'You are scheduled' and 'A calendar invitation has been sent to your email address.'
+5. For each of the 40 candidates:
+   - Select the candidate's date.
+   - Select the candidate's time.
+   - Continue to the guest details form.
+   - Fill first name, last name, email, and message.
+   - Submit the booking with `Schedule Event`.
 
-#### 1.5. Negative and edge-case coverage for form and scheduling flow
+6. Verify the booking result.
+   - A successful booking must display `You are scheduled`.
+   - A successful booking must display `A calendar invitation has been sent to your email address.`
 
-**File:** `specs/contact-and-booking-flow/negative-and-edge-cases.spec.ts`
+### External Calendly security condition
 
-**Steps:**
-  1. Submit invalid contact-form data such as blank values or malformed email addresses.
-    - expect: The form rejects invalid input.
-    - expect: The user sees validation feedback and cannot continue.
-  2. Attempt to choose a day with no available times and verify the UI remains blocked.
-    - expect: No booking is created for a non-bookable date or time.
-    - expect: The UI continues to show only valid bookable options.
-  3. Run the booking suite in parallel or repeated order with fresh browser state.
-    - expect: Each scenario is independent.
-    - expect: No test depends on shared booking state or reused credentials.
+During CI execution, Calendly may reject automated booking finalization with the following user-facing state:
+
+`This booking cannot be completed`
+
+When this external security restriction is returned, the test is intentionally marked as **skipped**.
+
+The test does not bypass or spoof Calendly security controls and does not report a blocked booking as a false pass.
+
+## Architecture
+
+The implementation uses:
+
+- Playwright Test
+- TypeScript
+- Page Object Model
+- Custom Playwright fixture
+- Generated unique test data
+- Playwright `test.step()` for the booking iterations
+- Web-first assertions
+
+## Reporting and CI
+
+Test results are uploaded automatically to Qase TestOps from GitHub Actions.
+
+The CI workflow also stores the Playwright HTML report and test artifacts as GitHub Actions artifacts.
+
+## Limitations
+
+The booking flow depends on live Calendly availability and Calendly's external booking and security rules.
+
+The automation therefore cannot guarantee that 40 bookings can be finalized from every execution environment.
+
+The implementation verifies the required booking confirmation when Calendly accepts the booking and explicitly handles an external Calendly security block as a skipped result.
